@@ -70,7 +70,7 @@ int32_t ch341SetStream(uint32_t speed);
 int32_t ch341SpiStream(uint8_t *out, uint8_t *in, uint32_t len);
 int32_t ch341SpiCapacity(void);
 int32_t ch341SpiRead(uint8_t *buf, uint32_t add, uint32_t len);
-int32_t ch341ReadStatus(void);
+uint8_t ch341ReadStatus(void);
 int32_t ch341WriteStatus(uint8_t status);
 int32_t ch341EraseChip(void);
 int32_t ch341SpiWrite(uint8_t *buf, uint32_t add, uint32_t len);

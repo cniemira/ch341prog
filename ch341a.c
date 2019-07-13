@@ -297,7 +297,7 @@ int32_t ch341SpiCapacity(void)
 }
 
 /* read status register */
-int32_t ch341ReadStatus(void)
+uint8_t ch341ReadStatus(void)
 {
     uint8_t out[2];
     uint8_t in[2];
@@ -402,7 +402,7 @@ int32_t ch341SpiRead(uint8_t *buf, uint32_t add, uint32_t len)
     uint32_t pkg_len, pkg_count;
     struct libusb_transfer *xferBulkIn, *xferBulkOut;
     uint32_t idx = 0;
-    uint32_t ret;
+    int32_t ret;
     int32_t old_counter;
     struct timeval tv = {0, 100};
     struct spi_transfer_in bulk_in = {};
@@ -488,7 +488,7 @@ int32_t ch341SpiWrite(uint8_t *buf, uint32_t add, uint32_t len)
     uint32_t tmp, pkg_count;
     struct libusb_transfer *xferBulkIn, *xferBulkOut;
     uint32_t idx = 0;
-    uint32_t ret;
+    int32_t ret;
     int32_t old_counter;
     struct timeval tv = {0, 100};
     bool fourbyte = (add + len) > (1 << 24);
@@ -503,6 +503,7 @@ int32_t ch341SpiWrite(uint8_t *buf, uint32_t add, uint32_t len)
 
     printf("Write started!\n");
     while (len > 0) {
+        printf("break a\n");
         v_print(1, len);
 
         out[0] = 0x06; // Write enable
@@ -560,11 +561,16 @@ int32_t ch341SpiWrite(uint8_t *buf, uint32_t add, uint32_t len)
         if (ret < 0) break;
         out[0] = 0x04; // Write disable
         ret = ch341SpiStream(out, in, 1);
+        printf("break b %04x\n", ret);
         do {
             ret = ch341ReadStatus();
-            if (ret != 0)
+            printf("break c = %04x\n", ret);
+            if (ret & 1) {
+                printf("break d\n");
                 libusb_handle_events_timeout(NULL, &tv);
-        } while(ret != 0);
+            }
+        } while (ret & 1);
+        printf("break e = %04x\n", ret);
         if (force_stop == 1) { // user hit ctrl+C
             force_stop = 0;
             if (len > 0)

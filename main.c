@@ -21,6 +21,7 @@
  *
  */
 
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,6 +81,7 @@ int main(int argc, char* argv[])
     uint32_t speed = CH341A_STM_I2C_20K;
     int8_t c;
     int offset = 0;
+    uint8_t status;
 
     const char usage[] =
         "\nUsage:\n"\
@@ -91,6 +93,7 @@ int main(int argc, char* argv[])
         " -w, --write <filename> write chip with data from filename\n"\
         " -o, --offset <bytes>   write data starting from specific offset\n"\
         " -r, --read <filename>  read chip and save data to filename\n"\
+        " -s, --status <bytes>   write to chip status buffer\n"\
         " -t, --turbo            increase the i2c bus speed (-tt to use much faster speed)\n"\
         " -d, --double           double the spi bus speed\n";
     const struct option options[] = {
@@ -103,13 +106,14 @@ int main(int argc, char* argv[])
         {"write",   required_argument,  0, 'w'},
         {"offset",  required_argument,  0, 'o'},
         {"read",    required_argument,  0, 'r'},
+        {"status",  required_argument,  0, 's'},
         {"turbo",   no_argument,        0, 't'},
         {"double",  no_argument,        0, 'd'},
         {0, 0, 0, 0}};
 
         int32_t optidx = 0;
 
-        while ((c = getopt_long(argc, argv, "hiew:r:l:tdvo:", options, &optidx)) != -1){
+        while ((c = getopt_long(argc, argv, "hiew:r:s:l:tdvo:", options, &optidx)) != -1){
             switch (c) {
                 case 'i':
                 case 'e':
@@ -127,6 +131,14 @@ int main(int argc, char* argv[])
                         op = c;
                         filename = (char*) malloc(strlen(optarg) + 1);
                         strcpy(filename, optarg);
+                    } else
+                        op = 'x';
+                    break;
+                case 's':
+                    if (!op) {
+                        op = c;
+                        sscanf(optarg, "%"SCNu8, &status);
+                        printf("%"PRIu8"\n", status);
                     } else
                         op = 'x';
                     break;
@@ -166,6 +178,9 @@ int main(int argc, char* argv[])
     if (ret < 0) goto out;
     cap = 1 << ret;
     printf("Chip capacity is %d bytes\n", cap);
+
+    ret = ch341ReadStatus();
+    printf("Status Buffer: %"PRIu32"\n", ret);
 
     if (length != 0){
         cap = length;
@@ -209,6 +224,12 @@ int main(int argc, char* argv[])
         if (ferror(fp))
             fprintf(stderr, "Error writing file [%s]\n", filename);
         fclose(fp);
+    }
+    if (op == 's') {
+        ret = ch341WriteStatus(status);
+        if (ret == 0) {
+            printf("\nStatus write ok!\n");
+        }
     }
     if (op == 'w') {
         fp = fopen(filename, "rb");
